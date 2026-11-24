@@ -1,0 +1,76 @@
+import os
+import shutil
+from pathlib import Path
+
+# Define the directory to organize (defaults to the user's Downloads folder)
+TARGET_DIR = Path.home() / "Downloads"
+
+# Define your categories and their corresponding file extensions
+EXTENSION_MAP = {
+    "Images": [".jpg", ".jpeg", ".png", ".gif", ".bmp", ".svg", ".webp"],
+    "Documents": [".pdf", ".docx", ".doc", ".txt", ".xlsx", ".pptx", ".csv", ".md"],
+    "Audio": [".mp3", ".wav", ".aac", ".flac", ".m4a", ".ogg"],
+    "Video": [".mp4", ".mkv", ".mov", ".avi", ".webm", ".flv"],
+    "Archives": [".zip", ".tar", ".gz", ".rar", ".7z"],
+    "Code": [".py", ".js", ".html", ".css", ".cpp", ".json", ".sql"],
+}
+
+def organize_folder(directory: Path):
+    if not directory.exists():
+        print(f"Error: The directory {directory} does not exist.")
+        return
+
+    print(f"Organizing files in: {directory}")
+
+    # Iterate through everything in the target directory
+    for item in directory.iterdir():
+        # Skip directories and hidden system files
+        if item.is_dir() or item.name.startswith("."):
+            continue
+
+        file_extension = item.suffix.lower()
+        moved = False
+
+        # Check which category matches the file extension
+        for category, extensions in EXTENSION_MAP.items():
+            if file_extension in extensions:
+                category_dir = directory / category
+                category_dir.mkdir(exist_ok=True)
+                
+                # Handle filename collisions (if a file with the same name already exists)
+                dest_path = category_dir / item.name
+                if dest_path.exists():
+                    base = item.stem
+                    suffix = item.suffix
+                    counter = 1
+                    while dest_path.exists():
+                        dest_path = category_dir / f"{base}_{counter}{suffix}"
+                        counter += 1
+
+                # Move the file
+                shutil.move(str(item), str(dest_path))
+                print(f"Moved: {item.name} -> {category}/")
+                moved = True
+                break
+
+        # If the file extension doesn't match any category, move it to 'Others'
+        if not moved:
+            others_dir = directory / "Others"
+            others_dir.mkdir(exist_ok=True)
+            
+            dest_path = others_dir / item.name
+            if dest_path.exists():
+                base = item.stem
+                suffix = item.suffix
+                counter = 1
+                while dest_path.exists():
+                    dest_path = others_dir / f"{base}_{counter}{suffix}"
+                    counter += 1
+
+            shutil.move(str(item), str(dest_path))
+            print(f"Moved: {item.name} -> Others/")
+
+    print("Organization complete!")
+
+if __name__ == "__main__":
+    organize_folder(TARGET_DIR)
